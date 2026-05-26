@@ -7,8 +7,6 @@
 
 ### 第一步：Windows 环境准备
 
-如果你在 Windows 上运行，不使用 `setup.sh`，建议直接用 Conda 或 Python 虚拟环境启动。
-
 # 创建并激活 Conda 虚拟环境
 conda create -n aiw-pes python=3.10 -y
 conda activate aiw-pes
