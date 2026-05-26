@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 AI辅助工作心理体验量表 - 数据可视化工具
 从 responses.txt 或 survey.db 读取数据，生成分析图表
@@ -44,9 +42,14 @@ def setup_chinese_font():
         if os.path.exists(fp):
             try:
                 prop = fm.FontProperties(fname=fp)
-                plt.rcParams['font.family'] = prop.get_name()
+                # 将首选中文字体与 DejaVu Sans 一起设置为字体家族，
+                # 以便在中文字体缺少某些符号（如减号 U+2212）时回退到 DejaVu
+                plt.rcParams['font.family'] = [prop.get_name(), 'DejaVu Sans']
+                plt.rcParams['font.sans-serif'] = [prop.get_name(), 'DejaVu Sans']
                 fm.fontManager.addfont(fp)
                 print(f'  使用字体: {fp}')
+                # 启用 Unicode 减号（如果回退字体支持），以保证负号显示正确
+                plt.rcParams['axes.unicode_minus'] = True
                 return prop
             except Exception:
                 continue
@@ -56,19 +59,25 @@ def setup_chinese_font():
             prop = fm.FontProperties(fname=f)
             name = prop.get_name().lower()
             if any(kw in name for kw in ['noto', 'cjk', 'wqy', 'droid', 'simsun', 'simhei', 'ipaex', 'source han']):
-                plt.rcParams['font.family'] = prop.get_name()
+                plt.rcParams['font.family'] = [prop.get_name(), 'DejaVu Sans']
+                plt.rcParams['font.sans-serif'] = [prop.get_name(), 'DejaVu Sans']
                 fm.fontManager.addfont(f)
                 print(f'  使用字体: {f}')
+                plt.rcParams['axes.unicode_minus'] = True
                 return prop
         except Exception:
             continue
     plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
-    plt.rcParams['axes.unicode_minus'] = False
+    plt.rcParams['axes.unicode_minus'] = True
     print('  ⚠️ 未找到中文字体，使用 DejaVu Sans（中文将显示为方框）')
     print('  💡 可通过 pip install matplotlib-fontja 安装日文字体（可显示部分中文）')
     return None
 
 FONT_PROP = setup_chinese_font()
+
+# 避免部分中文字体（如 SimHei）缺少 Unicode 减号 U+2212 导致的警告和缺字，
+# 强制使用 ASCII 减号 '-' 进行绘图显示（False 表示使用 ASCII 减号）。
+plt.rcParams['axes.unicode_minus'] = False
 
 # 配色方案
 COLORS = {
@@ -189,20 +198,58 @@ def chart_avg_comparison(rows):
 # 图表3: 各维度均分雷达图
 # ============================================================
 def chart_dimension_radar(rows):
-    """六维度剖面雷达图"""
-    dim_names = ['技术压力\n与适应困难', '能力焦虑\n与替代担忧', '心理社会\n影响',
-                 'AI效能感\n与掌控力', '积极体验\n与效率提升', '综合从容\n与乐观态度']
-    dim_ids = ['tech_stress', 'competence_anxiety', 'psychosocial_impact',
-               'ai_efficacy', 'positive_experience', 'composure_optimism']
+    """维度剖面雷达图（自动适配已有维度）"""
+    # 首先从数据中收集所有维度ID（兼容旧版6维度与新版4维度）
+    dim_set = []
+    for row in rows:
+        try:
+            ds = json.loads(row['dimension_scores'])
+            for k in ds.keys():
+                if k not in dim_set:
+                    dim_set.append(k)
+        except Exception:
+            continue
+
+    # 优先使用推荐顺序显示（便于比较），否则按发现顺序
+    preferred = ['perceived_impact', 'control_competence', 'emotional_response', 'ethical_concerns',
+                 'tech_stress', 'competence_anxiety', 'psychosocial_impact',
+                 'ai_efficacy', 'positive_experience', 'composure_optimism']
+    dim_ids = [d for d in preferred if d in dim_set] + [d for d in dim_set if d not in preferred]
+
+    # 映射为可读名称
+    label_map = {
+        'perceived_impact': '感知的学习/\n工作影响',
+        'control_competence': '掌控感\n与能力',
+        'emotional_response': '情绪反应\n与压力',
+        'ethical_concerns': '伦理与\n长期顾虑',
+        'tech_stress': '技术压力\n与适应困难',
+        'competence_anxiety': '能力焦虑\n与替代担忧',
+        'psychosocial_impact': '心理社会\n影响',
+        'ai_efficacy': 'AI效能感\n与掌控力',
+        'positive_experience': '积极体验\n与效率提升',
+        'composure_optimism': '综合从容\n与乐观态度'
+    }
+
+    dim_names = [label_map.get(d, d) for d in dim_ids]
 
     # 计算各维度平均分
     avg_scores = []
     for dim_id in dim_ids:
         scores = []
         for row in rows:
-            ds = json.loads(row['dimension_scores'])
-            if dim_id in ds:
-                scores.append(ds[dim_id].get('avg', 0))
+            try:
+                ds = json.loads(row['dimension_scores'])
+                if dim_id in ds:
+                    # ds[dim_id] 可能是 dict，优先取 avg
+                    val = ds[dim_id].get('avg') if isinstance(ds[dim_id], dict) else None
+                    if val is None:
+                        try:
+                            val = float(ds[dim_id])
+                        except Exception:
+                            val = 0
+                    scores.append(val)
+            except Exception:
+                continue
         avg_scores.append(np.mean(scores) if scores else 0)
 
     # 雷达图
@@ -297,7 +344,11 @@ def chart_major_comparison(rows):
     """各专业的平衡指数"""
     major_map = {}
     for row in rows:
-        mc = row.get('major_detail', '未填写')[:10]  # 用专业名称前10字
+        try:
+            major_raw = row['major_detail']
+        except Exception:
+            major_raw = None
+        mc = (major_raw if major_raw else '未填写')[:10]  # 用专业名称前10字
         if mc not in major_map:
             major_map[mc] = []
         major_map[mc].append(row['balance_score'])
@@ -375,10 +426,10 @@ def chart_balance_scatter(rows):
     ax.grid(alpha=0.2)
 
     # 区域标注
-    ax.text(len(rows)*0.95, 1.3, '从容主导', fontsize=9, color='#2e7d32', ha='right')
-    ax.text(len(rows)*0.95, -1.3, '焦虑主导', fontsize=9, color='#c62828', ha='right')
-    ax.text(len(rows)*0.95, 0.5, '轻微从容', fontsize=9, color='#66bb6a', ha='right')
-    ax.text(len(rows)*0.95, -0.5, '轻微焦虑', fontsize=9, color='#ef5350', ha='right')
+    ax.text(len(rows)*0.95, 1.1, '从容主导', fontsize=9, color='#2e7d32', ha='right')
+    ax.text(len(rows)*0.95, -0.9, '焦虑主导', fontsize=9, color='#c62828', ha='right')
+    ax.text(len(rows)*0.95, 0.4, '轻微从容', fontsize=9, color='#66bb6a', ha='right')
+    ax.text(len(rows)*0.95, -0.4, '轻微焦虑', fontsize=9, color='#ef5350', ha='right')
 
     plt.tight_layout()
     path = OUTPUT_DIR / '06_balance_scatter.png'
