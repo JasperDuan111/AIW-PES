@@ -3,25 +3,6 @@
 > 高校学生AI心理影响调查系统
 > 主题：人工智能辅助工作，给人带来的是负面情绪（焦虑/压力）还是积极体验（轻松/从容）
 
----
-
-## 📦 压缩包内容
-
-| 文件 | 说明 |
-|------|------|
-| `setup.sh` | **⭐ 一键启动脚本（建议先看这个）** |
-| `app.py` | Flask Web主程序（问卷+数据库+后台管理） |
-| `visualize.py` | 数据可视化脚本（生成6张图表+分析报告） |
-| `run.sh` | 服务管理脚本（start/stop/status/logs） |
-| `daemonize.py` | 后台保活启动脚本 |
-| `templates/` | 前端HTML模板（index.html/result.html/admin.html/login.html） |
-| `static/` | 静态资源（二维码、字体等） |
-| `README.md` | 本说明文档 |
-| `Reference1.md` | 参考量表A：AIPI-US（25题6维度） |
-| `Reference2.md` | 参考量表B：AIAS-CS-40（40题8维度） |
-
----
-
 ## 🚀 快速启动
 
 ### 第一步：Windows 环境准备
