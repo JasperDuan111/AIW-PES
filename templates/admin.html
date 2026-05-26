@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据管理 - {{ scale_info.name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+                         'Microsoft YaHei', sans-serif;
+            background: #f5f7fb;
+            color: #333;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
+            padding: 24px 32px;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 { font-size: 20px; }
+        .header .count { font-size: 14px; opacity: 0.85; }
+        .header .actions { display: flex; gap: 8px; }
+        .header .actions a {
+            color: #fff;
+            text-decoration: none;
+            padding: 6px 16px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .header .actions a:hover { background: rgba(255,255,255,0.15); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .stat-card .num {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a237e;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .filter-bar input { flex: 1; min-width: 200px; }
+
+        table {
+            width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-collapse: collapse;
+        }
+        th {
+            background: #f8f9ff;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px 16px;
+            font-size: 13px;
+            border-top: 1px solid #f0f0f0;
+        }
+        tr:hover td { background: #fafbff; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
+        .badge-yellow { background: #fff8e1; color: #e65100; }
+        .badge-red { background: #fce4ec; color: #c62828; }
+        .badge-blue { background: #e3f2fd; color: #1565c0; }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty .emoji { font-size: 48px; margin-bottom: 12px; }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .header { padding: 16px; flex-direction: column; text-align: center; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 数据管理面板</h1>
+                <div class="count">AI辅助工作心理体验量表 · 共 <strong>{{ count }}</strong> 条记录</div>
+            </div>
+            <div class="actions">
+                <a href="/">← 返回问卷</a>
+                <a href="/api/stats" target="_blank">📡 API数据</a>
+                <a href="#" onclick="location.reload();">🔄 刷新</a>
+                <a href="/admin/logout" style="border-color:rgba(255,100,100,0.5);">🚪 退出登录</a>
+            </div>
+        </div>
+
+        {% if count > 0 %}
+        <!-- 统计摘要 -->
+        <div class="stats-grid" id="stats-summary">
+            <div class="stat-card"><div class="num">{{ count }}</div><div class="label">总答卷数</div></div>
+            <div class="stat-card"><div class="num" id="stat-positive">-</div><div class="label">从容主导型</div></div>
+            <div class="stat-card"><div class="num" id="stat-balanced">-</div><div class="label">基本平衡型</div></div>
+            <div class="stat-card"><div class="num" id="stat-negative">-</div><div class="label">焦虑主导型</div></div>
+        </div>
+
+        <!-- 筛选 -->
+        <div class="filter-bar">
+            <input type="text" id="search-input" placeholder="🔍 搜索专业、年级、性别..." oninput="filterTable()">
+            <select id="type-filter" onchange="filterTable()">
+                <option value="">全部类型</option>
+                <option value="从容主导型">从容主导型</option>
+                <option value="轻微从容型">轻微从容型</option>
+                <option value="基本平衡型">基本平衡型</option>
+                <option value="轻微焦虑型">轻微焦虑型</option>
+                <option value="焦虑主导型">焦虑主导型</option>
+            </select>
+        </div>
+
+        <!-- 数据表 -->
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>提交时间</th>
+                        <th>性别</th>
+                        <th>年级</th>
+                        <th>专业</th>
+                        <th>焦虑均分</th>
+                        <th>从容均分</th>
+                        <th>平衡指数</th>
+                        <th>结果类型</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body">
+                    {% for row in rows %}
+                    {% set score = row['balance_score'] %}
+                    {% set badge_class = 'badge-green' if score > 0.3 else 'badge-yellow' if score > -0.3 else 'badge-red' %}
+                    <tr class="data-row">
+                        <td style="color:#999;">{{ loop.index }}</td>
+                        <td>{{ row['submit_time'][:16] }}</td>
+                        <td>{{ row['gender'] }}</td>
+                        <td>{{ row['grade'][:10] }}</td>
+                        <td>{{ row['major_detail'][:20] }}</td>
+                        <td style="color:#c62828; font-weight:600;">{{ "%.2f"|format(row['negative_avg']) }}</td>
+                        <td style="color:#2e7d32; font-weight:600;">{{ "%.2f"|format(row['positive_avg']) }}</td>
+                        <td style="font-weight:700;">{{ "%+.2f"|format(score) }}</td>
+                        <td><span class="badge {{ badge_class }}">{{ row['balance_type'] }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="empty" style="background:#fff; border-radius:16px;">
+            <div class="emoji">📭</div>
+            <h3 style="color:#666; margin-bottom:8px;">暂无数据</h3>
+            <p>还没有人填写问卷，分享二维码开始收集数据吧！</p>
+        </div>
+        {% endif %}
+
+        <p style="text-align:center; font-size:12px; color:#999; margin-top:20px;">
+            AI辅助工作心理体验量表 (AIW-PES) · 数据管理面板
+        </p>
+    </div>
+
+    <script>
+        // 加载统计数据
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => {
+                if (data.count > 0) {
+                    document.getElementById('stat-positive').textContent =
+                        (data.balance_distribution['从容主导型'] || 0) +
+                        (data.balance_distribution['轻微从容型'] || 0);
+                    document.getElementById('stat-balanced').textContent =
+                        data.balance_distribution['基本平衡型'] || 0;
+                    document.getElementById('stat-negative').textContent =
+                        (data.balance_distribution['焦虑主导型'] || 0) +
+                        (data.balance_distribution['轻微焦虑型'] || 0);
+                }
+            });
+
+        // 筛选
+        function filterTable() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const typeFilter = document.getElementById('type-filter').value;
+            document.querySelectorAll('.data-row').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const type = row.querySelector('td:last-child .badge').textContent;
+                const matchSearch = !search || text.includes(search);
+                const matchType = !typeFilter || type === typeFilter;
+                row.style.display = matchSearch && matchType ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

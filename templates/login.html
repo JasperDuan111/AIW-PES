@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 32px;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        .login-card h1 {
+            font-size: 22px;
+            color: #1a237e;
+            margin-bottom: 8px;
+        }
+        .login-card p {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 24px;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8ecf4;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .login-card input:focus {
+            border-color: #667eea;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .login-card button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+        .error {
+            background: #fce4ec;
+            color: #c62828;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: #999;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .back-link:hover { color: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>🔒 管理员登录</h1>
+        <p>请输入密码查看数据管理面板</p>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+            <input type="password" name="password" placeholder="请输入管理员密码" required autofocus>
+            <button type="submit">进入管理面板</button>
+        </form>
+        <a href="/" class="back-link">← 返回问卷首页</a>
+    </div>
+</body>
+</html>

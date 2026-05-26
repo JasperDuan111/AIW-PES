@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>测评结果 - {{ scale_info.name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                         'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.7;
+            padding: 16px;
+        }
+        .container { max-width: 720px; margin: 0 auto; }
+
+        /* 头部 */
+        .header {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .header .result-emoji { font-size: 64px; margin-bottom: 8px; }
+        .header h1 { color: #fff; font-size: 24px; }
+        .header .sub { color: rgba(255,255,255,0.8); font-size: 14px; margin-top: 4px; }
+        .header .time { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 8px; }
+
+        /* 卡片 */
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a237e;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #eef2ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 平衡指数大展示 */
+        .balance-score {
+            text-align: center;
+            padding: 20px;
+        }
+        .balance-score .big-number {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .balance-score .label {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .balance-score .desc {
+            font-size: 14px;
+            color: #888;
+        }
+        .color-positive { color: #2e7d32; }
+        .color-negative { color: #c62828; }
+        .color-neutral { color: #f57f17; }
+
+        /* 双向对比条 */
+        .comparison-bars {
+            display: flex;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .comparison-bar {
+            flex: 1;
+            text-align: center;
+        }
+        .comparison-bar .bar-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .comparison-bar .bar-track {
+            height: 160px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            overflow: hidden;
+        }
+        .comparison-bar .bar-fill {
+            border-radius: 6px 6px 0 0;
+            transition: height 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .bar-negative { background: linear-gradient(180deg, #ef5350, #c62828); }
+        .bar-positive { background: linear-gradient(180deg, #66bb6a, #2e7d32); }
+
+        /* 各维度雷达/条形 */
+        .dim-grid {
+            display: grid;
+            gap: 12px;
+        }
+        .dim-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dim-row .dim-label {
+            flex: 0 0 120px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+        .dim-row .dim-track {
+            flex: 1;
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .dim-row .dim-fill {
+            height: 100%;
+            border-radius: 12px;
+            transition: width 1s ease;
+            position: relative;
+        }
+        .dim-row .dim-fill.neg { background: linear-gradient(90deg, #ffcdd2, #ef5350); }
+        .dim-row .dim-fill.pos { background: linear-gradient(90deg, #c8e6c9, #66bb6a); }
+        .dim-row .dim-score {
+            flex: 0 0 40px;
+            text-align: right;
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+        }
+        .dim-row .dim-desc {
+            flex: 0 0 60px;
+            text-align: right;
+            font-size: 11px;
+            color: #999;
+        }
+
+        /* 详细评分 */
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        .detail-item:last-child { border-bottom: none; }
+        .detail-item .q-text-small {
+            flex: 1;
+            color: #555;
+            margin-right: 12px;
+        }
+        .detail-item .score-badge {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        /* 信息行 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .info-item {
+            background: #f8f9ff;
+            padding: 10px 14px;
+            border-radius: 10px;
+        }
+        .info-item .label { font-size: 11px; color: #999; }
+        .info-item .value { font-size: 14px; font-weight: 600; color: #333; margin-top: 2px; }
+
+        /* 按钮 */
+        .btn-restart {
+            display: inline-block;
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-restart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .notice {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            padding: 16px;
+            line-height: 1.6;
+        }
+        .notice strong { color: rgba(255,255,255,0.9); }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header { padding: 24px 16px; }
+            .card { padding: 16px; }
+            .dim-row .dim-label { flex-basis: 90px; font-size: 12px; }
+            .info-grid { grid-template-columns: 1fr; }
+            .balance-score .big-number { font-size: 48px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 结果头部 -->
+        {% set balance = r.balance_score %}
+        {% set emoji = '😊' if balance > 0.3 else '😐' if balance > -0.3 else '😰' %}
+        {% set color_class = 'color-positive' if balance > 0 else 'color-neutral' if balance > -0.3 else 'color-negative' %}
+
+        <div class="header">
+            <div class="result-emoji">{{ emoji }}</div>
+            <h1>您的测评结果</h1>
+            <p class="sub">{{ r.balance_type }} · {{ r.level_label }}</p>
+            <p class="time">提交时间: {{ r.submit_time }}</p>
+        </div>
+
+        <!-- 平衡指数 -->
+        <div class="card">
+            <div class="card-title">⚖️ 心理平衡指数</div>
+            <div class="balance-score">
+                <div class="big-number {{ color_class }}">{{ "%+.2f"|format(balance) }}</div>
+                <div class="label {{ color_class }}">{{ r.balance_type }}</div>
+                <div class="desc">{{ r.level_label }}</div>
+            </div>
+
+            <div class="comparison-bars">
+                <div class="comparison-bar">
+                    <div class="bar-label">😰 焦虑压力指数</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-negative" style="height: {{ r.negative_avg * 20 }}%;">
+                            {{ "%.2f"|format(r.negative_avg) }}
+                        </div>
+                    </div>
+                </div>
+                <div class="comparison-bar">
+                    <div class="bar-label">😊 轻松从容指数</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-positive" style="height: {{ r.positive_avg * 20 }}%;">
+                            {{ "%.2f"|format(r.positive_avg) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p style="text-align:center; font-size:13px; color:#888; margin-top:8px;">
+                评分范围 1~5 分 · 数值越高代表该倾向越明显
+            </p>
+        </div>
+
+        <!-- 各维度详情 -->
+        <div class="card">
+            <div class="card-title">📊 六维度剖面分析</div>
+            <div class="dim-grid">
+                {% for dim in dimensions %}
+                {% set ds = r.dimension_scores.get(dim.id, {}) %}
+                {% set avg = ds.get('avg', 0) %}
+                {% set pct = avg * 20 %}
+                {% set is_neg = dim.direction == 'negative' %}
+                <div class="dim-row">
+                    <div class="dim-label">{{ dim.name }}</div>
+                    <div class="dim-track">
+                        <div class="dim-fill {{ 'neg' if is_neg else 'pos' }}" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <div class="dim-score">{{ "%.2f"|format(avg) }}</div>
+                    <div class="dim-desc">{{ '高=焦虑↑' if is_neg else '高=从容↑' }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            <p style="margin-top:12px; font-size:12px; color:#999; text-align:center;">
+                均分范围 1.00 ~ 5.00 · 条形越长表示该维度倾向越明显
+            </p>
+        </div>
+
+        <!-- 基本信息 -->
+        <div class="card">
+            <div class="card-title">👤 您的信息</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">性别</div>
+                    <div class="value">{{ r.gender }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">年级</div>
+                    <div class="value">{{ r.grade }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">专业</div>
+                    <div class="value">{{ r.major_detail }}</div>
+                </div>
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="label">AI使用频率</div>
+                    <div class="value">{{ r.ai_frequency }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细每题评分 -->
+        <div class="card">
+            <div class="card-title">📝 各题评分详情</div>
+            {% for item in all_items %}
+            {% set score = r.item_scores.get(loop.index0|string, '-') %}
+            {% if score != '-' %}
+                {% set s = score|int %}
+                {% set bg = '#c8e6c9' if s <= 2 else '#fff9c4' if s == 3 else '#ffcdd2' %}
+                {% set color = '#2e7d32' if s <= 2 else '#e65100' if s == 3 else '#c62828' %}
+            {% else %}
+                {% set bg = '#f0f0f0' %}
+                {% set color = '#999' %}
+            {% endif %}
+            <div class="detail-item">
+                <span class="q-text-small">
+                    <span style="font-weight:600;">Q{{ "%02d"|format(loop.index) }}</span>
+                    <span style="color: {{ '#c62828' if item.direction == 'negative' else '#2e7d32' }};">
+                        {{ '[-]' if item.direction == 'negative' else '[+]' }}
+                    </span>
+                    {{ item.text }}
+                </span>
+                <span class="score-badge" style="background: {{ bg }}; color: {{ color }};">
+                    {{ score }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 末尾 -->
+        <div style="text-align:center; padding:16px 0;">
+            <a href="/" class="btn-restart">📝 我也要测评</a>
+        </div>
+
+        <div class="notice">
+            <p>🔒 本问卷采用匿名方式，数据仅用于学术研究</p>
+            <p><strong>重要提示：</strong>本量表为研究工具，不构成临床诊断。</p>
+            <p>如您感到心理困扰，建议联系学校心理咨询中心寻求专业帮助。</p>
+        </div>
+    </div>
+
+    <script>
+        // 动画: 条形图渐入
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.bar-fill, .dim-fill').forEach(el => {
+                const h = el.style.height || el.style.width;
+                if (el.classList.contains('bar-fill')) {
+                    el.style.height = '0%';
+                    setTimeout(() => { el.style.height = h; }, 200);
+                } else {
+                    el.style.width = '0%';
+                    setTimeout(() => { el.style.width = h; }, 300);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
