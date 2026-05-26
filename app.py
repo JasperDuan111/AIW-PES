@@ -55,8 +55,8 @@ DEMOGRAPHICS = [
         'options': [
             '本科低年级（大一、大二）',
             '本科高年级（大三、大四）',
-            '硕士研究生',
-            '博士研究生'
+            '硕士',
+            '博士'
         ]
     },
     {
@@ -97,7 +97,7 @@ DEMOGRAPHICS = [
 DIMENSIONS = [
     {
         'id': 'perceived_impact',
-        'name': '感知的学习/工作影响',
+        'name': '工作影响',
         'direction': 'positive',
         'questions': [
             '使用AI后，我能更深入理解复杂概念，而不是只得到表面答案',
@@ -107,7 +107,7 @@ DIMENSIONS = [
     },
     {
         'id': 'control_competence',
-        'name': '掌控感与能力',
+        'name': '个人掌控',
         'direction': 'positive',
         'questions': [
             '我能评估 AI 建议的可靠性并据此做出判断',
@@ -117,7 +117,7 @@ DIMENSIONS = [
     },
     {
         'id': 'emotional_response',
-        'name': '情绪反应与压力',
+        'name': '情绪反应',
         'direction': 'negative',
         'questions': [
             '面对需要使用AI的任务时，我有时会感到焦虑或压力',
@@ -127,7 +127,7 @@ DIMENSIONS = [
     },
     {
         'id': 'ethical_concerns',
-        'name': '伦理与长期顾虑',
+        'name': '风险与担忧',
         'direction': 'negative',
         'questions': [
             '我担心AI的广泛使用会带来职业不安全感或替代风险',
