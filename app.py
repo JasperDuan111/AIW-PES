@@ -287,7 +287,6 @@ def sync_to_txt():
     for row in rows:
         # 简化年级显示
         grade_simple = row['grade'].replace('本科低年级（', '').replace('本科高年级（', '').replace('）', '')
-        grade_simple = grade_simple.replace('硕士研究生', '硕士').replace('博士研究生', '博士')
 
         # 简单提取AI工具
         ai_tools_raw = row['ai_tools']
